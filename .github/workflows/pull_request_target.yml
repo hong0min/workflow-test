@@ -1,0 +1,57 @@
+name: Assign reviewer by PR number (develop only)
+
+on:
+  pull_request_target:
+    branches: [develop]
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Assign reviewer (PR number % N)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.REVIEWERS_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const pr    = context.payload.pull_request;
+            const prNumber = pr.number;
+            const author = pr.user.login;
+
+            const REVIEWERS = [
+              "alice",
+              "bob",
+              "charlie",
+              "david",
+            ].sort((a,b)=>a.localeCompare(b));
+
+            const EXCLUDE = new Set([
+              author,
+              "dependabot[bot]",
+              "github-actions[bot]",
+              ...(pr.requested_reviewers || []).map(u => u.login),
+            ]);
+
+            const candidates = REVIEWERS.filter(r => !EXCLUDE.has(r));
+
+            if (candidates.length === 0) {
+              core.warning("No available reviewers after exclusions.");
+              return;
+            }
+
+            const reviewer = candidates[prNumber % candidates.length];
+
+            await github.rest.pulls.requestReviewers({
+              owner, repo,
+              pull_number: prNumber,
+              reviewers: [reviewer],
+            });
+
+            core.info(`Requested review from: ${reviewer}`);
