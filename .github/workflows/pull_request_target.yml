@@ -17,7 +17,7 @@ jobs:
       - name: Assign reviewer (PR number % N)
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.SECRET_GITHUB_TOKEN }}
+          github-token: ${{ secrets.SECRET_GITHUB_TOKEN  }}
           script: |
             const owner = context.repo.owner;
             const repo  = context.repo.repo;
@@ -25,12 +25,13 @@ jobs:
             const prNumber = pr.number;
             const author = pr.user.login;
 
+            // 🔥 여기에 GitHub 아이디를 넣어줘 (로그인 아이디)
             const REVIEWERS = [
               "alice",
               "bob",
               "charlie",
               "david",
-            ].sort((a,b)=>a.localeCompare(b));
+            ].sort((a,b)=>a.localeCompare(b)); // 결정론 유지
 
             const EXCLUDE = new Set([
               author,
